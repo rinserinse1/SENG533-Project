@@ -13,7 +13,7 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
 import { API } from "../api";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from 'jwt-decode';
 
 const LoginScreen = () => {
   let { setUser, setAuthToken } = useContext(AuthContext);
@@ -49,7 +49,7 @@ const LoginScreen = () => {
       );
       localStorage.setItem("authToken", data.accessToken);
       setAuthToken(data.accessToken);
-      setUser(jwt_decode(data.accessToken));
+      setUser(jwtDecode(data.accessToken));
       navigate("/movielist/page/1");
     } catch (error) {
       setError(error.response.data.error);

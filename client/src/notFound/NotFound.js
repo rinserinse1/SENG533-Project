@@ -31,13 +31,13 @@ export default function Error() {
                 py: 4,
               }}
             >
-              <Typography variant="h1" sx={{ color: '#4f46e5', mb: 2 , fontWeight: 'bold'}}>
+              <Typography variant="h1" sx={{ color: 'red' }}>
                 404
               </Typography>
-              <Typography variant="h6" sx={{ color: 'white', mb: 3 }}>
+              <Typography variant="h6">
                 The page you’re looking for doesn’t exist.
               </Typography>
-              <Button variant="contained" component={Link} to={'/'} sx={{ bgcolor: '#4f46e5', color: '#ffffff', '&:hover': { bgcolor: '#4338ca' } }}>
+              <Button variant="contained" component={Link} to={'/'} sx={{ mt: 3 }}>
                 Back Home
               </Button>
             </Box>

@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect } from 'react'
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from "react-router-dom";
 import React from 'react';
 import { API } from '../api';
@@ -12,7 +12,7 @@ export const AuthProvider = ({children}) => {
 
 
     let [authToken, setAuthToken] = useState(()=> localStorage.getItem('authToken') ? localStorage.getItem('authToken') : null)         // if you can get item, get the item, if you cant, null
-    let [user, setUser] = useState(()=> localStorage.getItem('authToken') ? jwt_decode(localStorage.getItem('authToken')) : null)
+    let [user, setUser] = useState(()=> localStorage.getItem('authToken') ? jwtDecode(localStorage.getItem('authToken')) : null)
     let [loading, setLoading] = useState(true)
     const navigate = useNavigate();
 
@@ -38,7 +38,7 @@ export const AuthProvider = ({children}) => {
 
     useEffect(()=> {
         if(authToken){
-            setUser(jwt_decode(authToken)) //only problem with this is that is refreshes token too  much, but its not doing it anymore
+            setUser(jwtDecode(authToken)) //only problem with this is that is refreshes token too  much, but its not doing it anymore
         }
         setLoading(false)
 

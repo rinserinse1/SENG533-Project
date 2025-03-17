@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link as Link2 } from "react-router-dom";
 import React, { useContext } from "react";
 import "./RegisterScreen.css";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from 'jwt-decode';
 import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
@@ -64,7 +64,7 @@ const RegisterScreen = () => {
 
       localStorage.setItem("authToken", data.accessToken);
       setAuthToken(data.accessToken);
-      setUser(jwt_decode(data.accessToken));
+      setUser(jwtDecode(data.accessToken));
       navigate("/");
     } catch (error) {
       setError(error.response.data.error);
