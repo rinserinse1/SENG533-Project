@@ -20,12 +20,41 @@ const options = {
     }
   };
 
+const cache = new Map();  // key: 'query|pageNumber', value: { data, timestamp }
+
+function getCacheKey(query, pageNumber) {
+  return `${query}|${pageNumber}`;
+}
+
+// Optional: 60-second cache expiration
+const CACHE_TTL_MS = 60_000;
 
 
 export const searchMovies = async (req, res) => {
-  const { query, pageNumber } = req.query; // Extract pageNumber from the query parameters
+  const { query, pageNumber } = req.query;
+  console.log(`Received search request for query="${query}", page="${pageNumber}"`);
+
+  // 1. Check cache
+  const cacheKey = getCacheKey(query, pageNumber);
+  const cachedEntry = cache.get(cacheKey);
+  if (cachedEntry) {
+    const age = Date.now() - cachedEntry.timestamp;
+    // If entry is fresh, return immediately
+    if (age < CACHE_TTL_MS) {
+      console.log('Returning cached response for', cacheKey);
+      return res.status(200).json(cachedEntry.data);
+    } else {
+      console.log('Cache expired for', cacheKey, '- removing from cache');
+      cache.delete(cacheKey);
+    }
+  }
+
+  // 2. Not in cache or expired, fetch from TMDB
   try {
-    const response = await axios.get(`https://api.themoviedb.org/3/search/movie?query=${query}&include_adult=false&language=en-US&page=${pageNumber}`, options);
+    const response = await axios.get(
+      `https://api.themoviedb.org/3/search/movie?query=${query}&include_adult=false&language=en-US&page=${pageNumber}`,
+      options
+    );
     const movies = response.data.results.map(item => ({
       id: item.id,
       title: item.title,
@@ -33,13 +62,21 @@ export const searchMovies = async (req, res) => {
       release_date: item.release_date,
       image: `https://image.tmdb.org/t/p/w500/${item.poster_path}`
     }));
+
+    // 3. Store in cache
+    cache.set(cacheKey, {
+      data: movies,
+      timestamp: Date.now()
+    });
+    console.log('Fetched fresh data from TMDB and cached for', cacheKey);
+
+    // 4. Return to client
     res.status(200).json(movies);
   } catch (error) {
     console.error('Error searching movies:', error);
     res.status(500).json({ error: 'An error occurred while searching movies.' });
   }
 };
-
 
 export const getTrendingList= async (req, res) => {
   const { page } = req.query;
