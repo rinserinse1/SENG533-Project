@@ -1,7 +1,38 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
+import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.1/index.js';
 
-// Directly set the access token
+export let options = {
+  scenarios: {
+    // Base load: ramp from 1 to 10 concurrent users
+    base_load: {
+      executor: 'ramping-vus',
+      startVUs: 1,
+      stages: [
+        { duration: '30s', target: 10 }, // ramp up to 10 VUs over 30 seconds
+        { duration: '1m', target: 10 },  // sustain 10 VUs for 1 minute
+        { duration: '30s', target: 0 },  // ramp down to 0 VUs over 30 seconds
+      ],
+      gracefulRampDown: '10s',
+    },
+    // Medium load: 50 constant concurrent users
+    medium_load: {
+      executor: 'constant-vus',
+      vus: 50,
+      duration: '1m',
+      startTime: '2m', // start after base_load scenario completes
+    },
+    // High load: 100 constant concurrent users
+    high_load: {
+      executor: 'constant-vus',
+      vus: 100,
+      duration: '1m',
+      startTime: '3m30s', // start after medium_load scenario completes
+    },
+  },
+};
+
+// Directly set the access token (used only for check verification)
 const accessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZTFlYTRmNGQ0NTgwOGYyNjkyYTkyMCIsImlhdCI6MTc0Mjg1ODg0NSwiZXhwIjoxNzQyODYwNjQ1fQ.FJ_ukmchkQaYmu4cEBJ9sWW1ytHB9HlFG0_DoIejGZU';
 
 export default function () {
@@ -29,25 +60,14 @@ export default function () {
     'Access Token is present': () => accessToken !== undefined,
   });
 
-
   // Simulate some wait time between requests
   sleep(1);
 }
 
-
 export function handleSummary(data) {
-    // data contains all end-of-test metrics
-    // We can return an object mapping file names to their contents
-  
-    return {
-      // Save a JSON with only the summary data
-      'summary.json': JSON.stringify(data, null, 2),
-  
-      // Also produce a nice human-readable summary on the console
-      stdout: textSummary(data, { indent: ' ', enableColors: true }),
-    };
-  }
-  
-  // We need this import at the bottom if we want the "textSummary" helper
-  import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.1/index.js';
-  
+  // Return summary as a JSON file and print a human-readable summary to stdout
+  return {
+    'summary.json': JSON.stringify(data, null, 2),
+    stdout: textSummary(data, { indent: ' ', enableColors: true }),
+  };
+}
