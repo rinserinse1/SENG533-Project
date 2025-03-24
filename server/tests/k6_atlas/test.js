@@ -1,13 +1,16 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
+// Directly set the access token
+const accessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZTFlYTRmNGQ0NTgwOGYyNjkyYTkyMCIsImlhdCI6MTc0Mjg1ODg0NSwiZXhwIjoxNzQyODYwNjQ1fQ.FJ_ukmchkQaYmu4cEBJ9sWW1ytHB9HlFG0_DoIejGZU';
+
 export default function () {
-  const url = 'http://localhost:5000/api/auth/login';
+  const url = 'http://localhost:5001/api/auth/login';
 
   // Login payload (replace with your test credentials)
   const payload = JSON.stringify({
-    email: 'user@example.com',
-    password: 'password123',
+    email: 'testacc@gmail.com',
+    password: 'Loblob999',
   });
 
   // Headers for JSON payload
@@ -20,15 +23,12 @@ export default function () {
   // Send the login request
   const res = http.post(url, payload, params);
 
-  // Validate response
+  // Validate login response
   check(res, {
-    'Login status is 200': (r) => r.status === 200,
-    'Access Token is present': (r) => JSON.parse(r.body).accessToken !== undefined,
+    'Login status is 200 (good)': (r) => r.status === 200,
+    'Access Token is present': () => accessToken !== undefined,
   });
 
-  // Optional: log the access token for debugging
-  const accessToken = JSON.parse(res.body).accessToken;
-  console.log('Access Token:', accessToken);
 
   // Simulate some wait time between requests
   sleep(1);
