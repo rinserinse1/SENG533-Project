@@ -79,7 +79,7 @@ export const searchMovies = async (req, res) => {
 };
 
 export const getTrendingList= async (req, res) => {
-  const { page=1 } = req.query;
+  const { page } = req.query;
   console.log("Trending page requested:", page);
   console.log(`Calling TMDB trending API with: page=${page}`);
   axios.get(`https://api.themoviedb.org/3/movie/popular?language=en-US&page=${page}`, options)         
