@@ -1,4 +1,4 @@
-import http from 'k6/http';
+/*import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.1/index.js';
 
@@ -32,41 +32,94 @@ export let options = {
   },
 };
 
-// Directly set the access token (used only for check verification)
+// Replace with a valid access token
+const accessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZTFlYTRmNGQ0NTgwOGYyNjkyYTkyMCIsImlhdCI6MTc0Mjg3NTA0MiwiZXhwIjoxNzQyODc2ODQyfQ.2_h3hsqtmlU11HNp17PBgH3X24BZ5so7yyA9cJcb_gk';
 
 export default function () {
-  const url = 'http://localhost:5001/api/auth/login';
+  const url = 'http://localhost:5001/api/makereview'; // Your review endpoint
 
-  // Login payload (replace with your test credentials)
+  // Payload for making a review (replace movieID and other fields as needed)
   const payload = JSON.stringify({
-    email: 'testacc@gmail.com',
-    password: 'Loblob999',
+    movieID: '12345',
+    description: 'Amazing movie! The plot twist blew my mind.',
+    stars: 5,
   });
 
-  // Headers for JSON payload
+  // Headers for authorization and JSON payload
   const params = {
     headers: {
+      'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
   };
 
-  // Send the login request
+  // Send the review request
   const res = http.post(url, payload, params);
 
-  // Validate login response
+  // Validate the response
   check(res, {
-    'Login status is 200 (good)': (r) => r.status === 200,
-    'Access Token is present': () => accessToken !== undefined,
+    'Review status is 200': (r) => r.status === 200,
+    'Response is not empty': (r) => r.body.length > 0,
   });
 
-  // Simulate some wait time between requests
+  // Simulate wait time between requests
   sleep(1);
 }
 
+// Handle the test summary output
 export function handleSummary(data) {
-  // Return summary as a JSON file and print a human-readable summary to stdout
   return {
-    'summary.json': JSON.stringify(data, null, 2),
-    stdout: textSummary(data, { indent: ' ', enableColors: true }),
+    'review-summary.json': JSON.stringify(data, null, 2), // Save as JSON
+    stdout: textSummary(data, { indent: ' ', enableColors: true }), // Console summary
   };
+}*/
+
+import http from 'k6/http';
+import { check } from 'k6';
+import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.1/index.js';
+
+export let options = {
+  vus: 1, // 1 virtual user
+  iterations: 1, // Only 1 iteration
+};
+
+// Replace with a valid access token
+const accessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZTFlYTRmNGQ0NTgwOGYyNjkyYTkyMCIsImlhdCI6MTc0Mjg3Njg2OCwiZXhwIjoxNzQyODc4NjY4fQ.oeaBT9knThCvibAS_B104IQb42uhNWRRs2njD5s5eIA';
+
+export default function () {
+  const url = 'http://localhost:5001/api/review/makereview'; // Your review endpoint
+
+  // Payload for making a review (replace movieID and other fields as needed)
+  const payload = JSON.stringify({
+    movieID: '12345',
+    description: 'Amazing movie! The plot twist blew my mind.',
+    stars: 5,
+  });
+
+  // Headers for authorization and JSON payload
+  const params = {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  };
+
+  // Send the review request
+  const res = http.post(url, payload, params);
+
+  // Validate the response
+  check(res, {
+    'Review status is 200': (r) => r.status === 200,
+    'Response is not empty': (r) => r.body.length > 0,
+  });
+
+  console.log('Response:', res.body);
 }
+
+// Handle the test summary output
+/*export function handleSummary(data) {
+  return {
+    'review-summary.json': JSON.stringify(data, null, 2), // Save as JSON
+    stdout: textSummary(data, { indent: ' ', enableColors: true }), // Console summary
+  };
+}*/

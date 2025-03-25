@@ -67,7 +67,7 @@ export default function () {
 export function handleSummary(data) {
   // Return summary as a JSON file and print a human-readable summary to stdout
   return {
-    'summary.json': JSON.stringify(data, null, 2),
+    'login_summary.json': JSON.stringify(data, null, 2),
     stdout: textSummary(data, { indent: ' ', enableColors: true }),
   };
 }
