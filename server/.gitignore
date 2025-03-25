@@ -11,3 +11,6 @@ package-lock.json
 
 notes.txt
 .env
+
+/tests/k6/results
+tests/k6/run_all_tests.sh
