@@ -153,3 +153,36 @@ const options = {
       }
     }
   };
+
+
+  export const getWatchListFaster = async (req, res, next) => {
+    let token;
+    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+  
+    if (!token) {
+      return next(new ErrorResponse("Not authorized to access this route", 401));
+    }
+  
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      // Use projection and lean() to efficiently retrieve only the watchlist field
+      const user = await User.findById(decoded.id).select('watchlist').lean();
+  
+      if (!user) {
+        return next(new ErrorResponse("User not found", 404));
+      }
+  
+      res.status(200).json({ watchlist: user.watchlist });
+  
+    } catch (err) {
+      if (err.name === "TokenExpiredError") {
+        return next(new ErrorResponse("Token expired", 401));
+      } else if (err.name === "JsonWebTokenError") {
+        return next(new ErrorResponse("Malformed JWT token", 500));
+      } else {
+        return next(new ErrorResponse("Not authorized to access this route", err, 401));
+      }
+    }
+  };

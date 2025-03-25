@@ -80,6 +80,8 @@ export const searchMovies = async (req, res) => {
 
 export const getTrendingList= async (req, res) => {
   const { page } = req.query;
+  console.log("Trending page requested:", page);
+  console.log(`Calling TMDB trending API with: page=${page}`);
   axios.get(`https://api.themoviedb.org/3/movie/popular?language=en-US&page=${page}`, options)         
     .then(response => {
         //console.log(response.data)
@@ -96,10 +98,10 @@ export const getTrendingList= async (req, res) => {
         );
     })
     .catch(error => {
-        // Handle any errors
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred' });
+      console.error("Trending list error:", error.response?.data || error.message);
+      res.status(500).json({ error: 'An errofsdfsdfr occurred' });
     });
+    
 
   };
 
@@ -119,6 +121,9 @@ export const getTrendingList= async (req, res) => {
         // Take the first video key if available
         const videoKey = trailer ? trailer.key : null;
         const genres = response.data.genres.map(genre => genre.name);
+        console.log("image: https://image.tmdb.org/t/p/w500/"+ response.data.poster_path);
+        console.log("description: "+ response.data.overview);
+        console.log("title: "+ response.data.title);
 
 
         res.status(200).json({
