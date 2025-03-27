@@ -65,7 +65,7 @@ export default function(data) {
 
     case 'getWatchlist':
       // GET the user's watchlist using the token
-      res = http.get(`${BASE_URL}/api/watchlist/getwatchlistFaster`, {
+      res = http.get(`${BASE_URL}/api/watchlist/getwatchlistfaster`, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${data.token}`

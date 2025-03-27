@@ -60,7 +60,7 @@ export default function(data) {
     description: 'Great movie!',
     stars: 4
   });
-  const res = http.post(`${BASE_URL}/api/review/makereviewFaster`, reviewPayload, {
+  const res = http.post(`${BASE_URL}/api/review/makereviewfaster`, reviewPayload, {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${data.token}`
