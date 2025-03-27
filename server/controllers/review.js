@@ -24,67 +24,67 @@ const options = {
 
 
 
-export const makeReview = async (req, res, next) => {
-  const { movieID, description, stars } = req.body;
-
-  let token;
-  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-    token = req.headers.authorization.split(" ")[1];
-  }
-
-  if (!token) {
-    return next(new ErrorResponse("Not authorized to access this route", 401));
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // Fetch the user and movie details concurrently
-    const [user, response] = await Promise.all([
-      User.findById(decoded.id),
-      axios.get(`https://api.themoviedb.org/3/movie/${movieID}`, options)
-    ]);
-
-    // Prepare review object with movie details
-    const reviewData = {
-      movieID,
-      review_description: description,
-      stars,
-      title: response.data.title,
-      description: response.data.overview,
-      image: "https://image.tmdb.org/t/p/w500/" + response.data.poster_path,
-    };
-
-    // Update the user's reviews and create a separate review document concurrently
-    await Promise.all([
-      User.findByIdAndUpdate(
-        decoded.id,
-        { $push: { reviews: reviewData } },
-        { new: false }
-      ),
-      Review.create({
-        movieID,
-        email: user.email,
-        name: user.name,
-        review_description: description,
-        stars,
-      })
-    ]);
-
-    res.status(200).json();
-
-  } catch (err) {
-    if (err.name === "TokenExpiredError") {
-      return next(new ErrorResponse("Token expired", 401));
-    } else if (err.name === "JsonWebTokenError") {
-      return next(new ErrorResponse("Malformed JWT token", 500));
-    } else if (err.code === 11000) {
-      console.log(err);
-      return next(new ErrorResponse("Duplicate key error", 409));
-    } else {
-      return next(new ErrorResponse("Not authorized to access this route", err, 401));
+  export const makeReview = async (req, res, next) => {
+ 
+    const { movieID, description, stars } = req.body; 
+  
+    let token;
+    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+      token = req.headers.authorization.split(" ")[1];
     }
-  }
-};
+  
+    if (!token) {
+      return next(new ErrorResponse("Not authorized to access this route", 401));
+    }
+  
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id);
+      const response = await axios.get(`https://api.themoviedb.org/3/movie/${movieID}`, options);
+  
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: decoded.id }, 
+        { 
+          $push: { 
+            reviews: {
+              movieID: movieID, 
+              review_description: description,
+              stars: stars,
+              title: response.data.title,
+              description: response.data.overview,
+              image: "https://image.tmdb.org/t/p/w500/" + response.data.poster_path,
+            }
+          },
+        },
+        { new: false } // This option returns the modified document rather than the original one
+      );
+
+      const review = await Review.create({
+        movieID: movieID,
+        email: user.email, // Assuming you want to associate the review with the user's email
+        name: user.name, // Assuming you want to associate the review with the user's name
+        review_description: description,
+        stars: stars,
+      });
+
+      res.status(200).json();
+
+    } catch (err) {
+      if (err.name === "TokenExpiredError") {
+        return next(new ErrorResponse("Token expired", 401));
+      } else if (err.name === "JsonWebTokenError") {
+        return next(new ErrorResponse("Malformed JWT token", 500));
+      } else if(err.code === 11000){
+        console.log(err)
+        return next(new ErrorResponse("Duplicate key error", 409));
+      }else {
+        return next(new ErrorResponse("Not authorized to access this route", err, 401));
+      }
+    }
+  };
+
+
+
 
 
 
@@ -98,7 +98,7 @@ export const makeReviewFaster = async (req, res, next) => {
 
   if (!token) {
     return next(new ErrorResponse("Not authorized to access this route", 401));
-  }
+  } 
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
