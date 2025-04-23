@@ -29,6 +29,13 @@ export let options = {
       duration: '1m',
       startTime: '3m30s', // start after medium_load scenario completes
     },
+    // Very High load: 1000 constant concurrent users
+    very_high_load: {
+      executor: 'constant-vus',
+      vus: 1000,
+      duration: '1m',
+      startTime: '5m', // start after medium_load scenario completes
+    },
   },
 };
 export function setup() {
@@ -56,7 +63,7 @@ export default function(data) {
   const BASE_URL = __ENV.BASE_URL || 'http://localhost:5001';
   // addReview endpoint for movieID 822119
   const reviewPayload = JSON.stringify({
-    movieID: '822119',
+    movieID: '1197306',
     description: 'Great movie!',
     stars: 4
   });

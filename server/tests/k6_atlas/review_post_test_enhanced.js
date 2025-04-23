@@ -4,75 +4,152 @@ import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.1/index.js';
 
 export let options = {
   scenarios: {
-    // Base load: ramp from 1 to 10 concurrent users
-    base_load: {
+    // Page 1 – Base load (0 → 1.5 m)
+    base_load_page1: {
       executor: 'ramping-vus',
       startVUs: 1,
       stages: [
-        { duration: '30s', target: 10 }, // ramp up to 10 VUs over 30 seconds
-        { duration: '30s', target: 10 },  // sustain 10 VUs for 1 minute
-        { duration: '30s', target: 0 },  // ramp down to 0 VUs over 30 seconds
+        { duration: '30s', target: 10 },
+        { duration: '30s', target: 10 },
+        { duration: '30s', target: 0  },
       ],
       gracefulRampDown: '10s',
+      tags: { page: '1' },
     },
-    // Medium load: 50 constant concurrent users
-    medium_load: {
+
+    // Page 2 – Base load (starts at 2 m)
+    base_load_page2: {
+      executor: 'ramping-vus',
+      startVUs: 1,
+      stages: [
+        { duration: '30s', target: 10 },
+        { duration: '30s', target: 10 },
+        { duration: '30s', target: 0  },
+      ],
+      gracefulRampDown: '10s',
+      startTime: '2m',
+      tags: { page: '2' },
+    },
+
+    // Page 1 – Medium load (starts at 4 m)
+    medium_load_page1: {
       executor: 'constant-vus',
-      vus: 50,
+      vus: 10,
       duration: '1m',
-      startTime: '2m', // start after base_load scenario completes
+      startTime: '4m',
+      tags: { page: '1' },
     },
-    // High load: 100 constant concurrent users
-    high_load: {
+    // Page 2 – Medium load (starts at 5 m)
+    medium_load_page2: {
+      executor: 'constant-vus',
+      vus: 10,
+      duration: '1m',
+      startTime: '5m',
+      tags: { page: '2' },
+    },
+
+    // Page 1 – High load (starts at 6 m)
+    high_load_page1: {
       executor: 'constant-vus',
       vus: 100,
       duration: '1m',
-      startTime: '3m30s', // start after medium_load scenario completes
+      startTime: '6m',
+      tags: { page: '1' },
+    },
+    // Page 2 – High load (starts at 7 m)
+    high_load_page2: {
+      executor: 'constant-vus',
+      vus: 100,
+      duration: '1m',
+      startTime: '7m',
+      tags: { page: '2' },
+    },
+
+    // Page 1 – Very high load (starts at 8 m)
+    very_high_load_page1: {
+      executor: 'constant-vus',
+      vus: 200,
+      duration: '1m',
+      startTime: '8m',
+      tags: { page: '1' },
+    },
+    // Page 2 – Very high load (starts at 9 m)
+    very_high_load_page2: {
+      executor: 'constant-vus',
+      vus: 200,
+      duration: '1m',
+      startTime: '9m',
+      tags: { page: '2' },
     },
   },
 };
+
 export function setup() {
   const BASE_URL = __ENV.BASE_URL || 'http://localhost:5001';
-  // Use provided token if available
+
+  // if you already have a token in env, use it
   if (__ENV.ACCESS_TOKEN) {
-    console.log("Using provided ACCESS_TOKEN:", __ENV.ACCESS_TOKEN);
+    console.log('Using provided ACCESS_TOKEN');
     return { token: __ENV.ACCESS_TOKEN };
   }
-  // Login to obtain token
-  const loginPayload = JSON.stringify({
-    email: __ENV.LOGIN_EMAIL || 'testacc@gmail.com',
-    password: __ENV.LOGIN_PASSWORD || 'Loblob999'
-  });
-  const res = http.post(`${BASE_URL}/api/auth/login`, loginPayload, {
-    headers: { 'Content-Type': 'application/json' }
-  });
-  check(res, { 'login returned 200': (r) => r.status === 200 });
-  const token = res.json().accessToken;
-  console.log("Setup login token:", token);
-  return { token: token };
+
+  // otherwise, log in to get one
+  const loginRes = http.post(
+    `${BASE_URL}/api/auth/login`,
+    JSON.stringify({
+      email: __ENV.LOGIN_EMAIL  || 'testacc@gmail.com',
+      password: __ENV.LOGIN_PASSWORD || 'Loblob999',
+    }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  check(loginRes, { 'login status 200': (r) => r.status === 200 });
+  const token = loginRes.json().accessToken;
+  console.log('Obtained token in setup:', token);
+  return { token };
 }
 
-export default function(data) {
+export default function (data) {
   const BASE_URL = __ENV.BASE_URL || 'http://localhost:5001';
-  // addReview endpoint for movieID 822119
-  const reviewPayload = JSON.stringify({
-    movieID: '822119',
-    description: 'Great movie!',
-    stars: 4
-  });
-  const res = http.post(`${BASE_URL}/api/review/makereviewfaster`, reviewPayload, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${data.token}`
+
+  const res = http.post(
+    `${BASE_URL}/api/review/makereviewfaster`,
+    JSON.stringify({
+      movieID:     '950387',
+      description: 'Lava Chicken!',
+      stars:       5,
+    }),
+    {
+      headers: {
+        'Content-Type':  'application/json',
+        Authorization:   `Bearer ${data.token}`,
+      },
     }
-  });
+  );
   check(res, { 'addReview returned 200': (r) => r.status === 200 });
   sleep(1);
 }
 
 export function handleSummary(data) {
+  const table = [];
+
+  for (const [scenarioName, sc] of Object.entries(data.scenarios)) {
+    const vusMetric = sc.vus_max;
+    const reqsMetric = data.metrics[`http_reqs{scenario:${scenarioName}}`].count;
+    const durMetric  = Number(data.metrics[`http_req_duration{scenario:${scenarioName}}`].avg.toFixed(2));
+    const chkMetric  = Number(data.metrics[`checks{scenario:${scenarioName}}`].rate.toFixed(2));
+    const pageNum    = Number(sc.tags.page);
+
+    table.push({
+      'Virtual Users':                vusMetric,
+      'HTTP Req Count (Iteration)':   reqsMetric,
+      'Avg Duration (ms)':            durMetric,
+      'Check Rate (Success Rate)':    chkMetric,
+      'Page Number':                  pageNum,
+    });
+  }
+
   return {
-    'review-summary.json': JSON.stringify(data, null, 2),
+    'review-summary.json': JSON.stringify(table, null, 2),
     stdout: textSummary(data, { indent: ' ', enableColors: true }),
   };
 }

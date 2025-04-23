@@ -29,6 +29,13 @@ export let options = {
         duration: '1m',
         startTime: '3m30s', // start after medium_load scenario completes
       },
+      // Very High load: 1000 constant concurrent users
+      very_high_load: {
+        executor: 'constant-vus',
+        vus: 200,
+        duration: '1m',
+        startTime: '5m', // start after medium_load scenario completes
+      },
     },
   };
   

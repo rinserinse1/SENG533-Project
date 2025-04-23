@@ -4,70 +4,111 @@ import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.1/index.js';
 
 export let options = {
   scenarios: {
-    // Base load: ramp from 1 to 10 concurrent users
-    base_load: {
+    // ─── BASE LOAD ───────────────────────────────────────────────────────────
+    base_load_page1: {
       executor: 'ramping-vus',
       startVUs: 1,
       stages: [
-        { duration: '30s', target: 10 }, // ramp up to 10 VUs over 30 seconds
-        { duration: '1m', target: 10 },  // sustain 10 VUs for 1 minute
-        { duration: '30s', target: 0 },  // ramp down to 0 VUs over 30 seconds
+        { duration: '30s', target: 10 }, // ramp up
+        { duration: '30s', target: 10 }, // sustain
+        { duration: '30s', target: 0  }, // ramp down
       ],
       gracefulRampDown: '10s',
+      // starts immediately
+      tags: { page: '1' },
     },
-    // Medium load: 50 constant concurrent users
-    medium_load: {
+    base_load_page2: {
+      executor: 'ramping-vus',
+      startVUs: 1,
+      stages: [
+        { duration: '30s', target: 10 },
+        { duration: '30s', target: 10 },
+        { duration: '30s', target: 0  },
+      ],
+      gracefulRampDown: '10s',
+      startTime: '2m',      // exactly after page1’s 90s+30s = 2m
+      tags: { page: '2' },
+    },
+
+    // ─── MEDIUM LOAD ─────────────────────────────────────────────────────────
+    medium_load_page1: {
       executor: 'constant-vus',
-      vus: 50,
+      vus: 10,
       duration: '1m',
-      startTime: '2m', // start after base_load scenario completes
+      startTime: '4m',      // after both base_loads (2m + 2m = 4m)
+      tags: { page: '1' },
     },
-    // High load: 100 constant concurrent users
-    high_load: {
+    medium_load_page2: {
+      executor: 'constant-vus',
+      vus: 10,
+      duration: '1m',
+      startTime: '5m',      // after medium_load_page1
+      tags: { page: '2' },
+    },
+
+    // ─── HIGH LOAD ───────────────────────────────────────────────────────────
+    high_load_page1: {
       executor: 'constant-vus',
       vus: 100,
       duration: '1m',
-      startTime: '3m30s', // start after medium_load scenario completes
+      startTime: '6m',      // after both medium_loads (4m + 1m + 1m = 6m)
+      tags: { page: '1' },
+    },
+    high_load_page2: {
+      executor: 'constant-vus',
+      vus: 100,
+      duration: '1m',
+      startTime: '7m',      // after high_load_page1
+      tags: { page: '2' },
+    },
+
+    // ─── VERY HIGH LOAD ──────────────────────────────────────────────────────
+    very_high_load_page1: {
+      executor: 'constant-vus',
+      vus: 200,
+      duration: '1m',
+      startTime: '8m',      // after both high_loads
+      tags: { page: '1' },
+    },
+    very_high_load_page2: {
+      executor: 'constant-vus',
+      vus: 200,
+      duration: '1m',
+      startTime: '9m',      // after very_high_load_page1
+      tags: { page: '2' },
     },
   },
 };
 
-// Directly set the access token (used only for check verification)
-const accessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZTFlYTRmNGQ0NTgwOGYyNjkyYTkyMCIsImlhdCI6MTc0Mjg1ODg0NSwiZXhwIjoxNzQyODYwNjQ1fQ.FJ_ukmchkQaYmu4cEBJ9sWW1ytHB9HlFG0_DoIejGZU';
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:5001';
+const accessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…';
 
 export default function () {
-  const url = 'http://localhost:5001/api/auth/login';
-
-  // Login payload (replace with your test credentials)
-  const payload = JSON.stringify({
-    email: 'testacc@gmail.com',
-    password: 'Loblob999',
-  });
-
-  // Headers for JSON payload
-  const params = {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  };
-
-  // Send the login request
-  const res = http.post(url, payload, params);
-
-  // Validate login response
+  const res = http.post(
+    `${BASE_URL}/api/auth/login`,
+    JSON.stringify({ email: 'testacc@gmail.com', password: 'Loblob999' }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
   check(res, {
-    'Login status is 200 (good)': (r) => r.status === 200,
-    'Access Token is present': () => accessToken !== undefined,
+    'status is 200': (r) => r.status === 200,
+    'token present': () => accessToken !== undefined,
   });
-
-  // Simulate some wait time between requests
   sleep(1);
 }
 
 export function handleSummary(data) {
-  // Return summary as a JSON file and print a human-readable summary to stdout
+  const table = [];
+  for (const [name, sc] of Object.entries(data.scenarios)) {
+    table.push({
+      'Virtual Users':               sc.vus_max,
+      'HTTP Req Count (Iteration)':  data.metrics[`http_reqs{scenario:${name}}`].count,
+      'Avg Duration (ms)':           Number(data.metrics[`http_req_duration{scenario:${name}}`].avg.toFixed(2)),
+      'Check Rate (Success Rate)':   Number(data.metrics[`checks{scenario:${name}}`].rate.toFixed(2)),
+      'Page Number':                 Number(sc.tags.page),
+    });
+  }
   return {
-    'login_summary.json': JSON.stringify(data, null, 2),
+    'login_summary.json': JSON.stringify(table, null, 2),
     stdout: textSummary(data, { indent: ' ', enableColors: true }),
   };
 }
